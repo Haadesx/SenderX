@@ -5,7 +5,7 @@ import { useStore } from './store';
 import { socket } from './lib/socket';
 
 function App() {
-  const { nickname, room, setPeers, addPeer, removePeer } = useStore();
+  const { nickname, room, setPeers, addPeer, removePeer, setNickname, setRoom } = useStore();
   const [inRoom, setInRoom] = useState(false);
 
   useEffect(() => {
@@ -35,6 +35,8 @@ function App() {
   }, []);
 
   const handleJoin = (nick, roomCode) => {
+    setNickname(nick);
+    setRoom(roomCode);
     socket.connect();
     socket.emit('join-room', { nickname: nick, room: roomCode });
     setInRoom(true);
