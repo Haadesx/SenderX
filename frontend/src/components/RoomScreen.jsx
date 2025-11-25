@@ -121,7 +121,7 @@ export function RoomScreen({ onLeave }) {
             rtc.cleanupAll();
             socket.off('relay-data');
         };
-    }, [],
+    }, []);
 
     const handleDrag = useCallback((e) => {
         e.preventDefault();
