@@ -21,9 +21,14 @@ app.use(express.json());
 // Serve Static Frontend
 const path = require('path');
 const frontendPath = path.join(__dirname, '../frontend/dist');
+console.log('Serving static files from:', frontendPath);
 app.use(express.static(frontendPath));
 
 // Health Check
+app.get('/healthz', (req, res) => {
+    res.status(200).send('OK');
+});
+
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -122,7 +127,12 @@ io.on('connection', (socket) => {
 
 // Catch-all for React Routing
 app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+    res.sendFile(path.join(frontendPath, 'index.html'), (err) => {
+        if (err) {
+            console.error('Error sending index.html:', err);
+            res.status(500).send('Error loading frontend');
+        }
+    });
 });
 
 server.listen(PORT, () => {
