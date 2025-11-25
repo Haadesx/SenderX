@@ -4,7 +4,11 @@ import { ArrowRight, Zap, Shield, Globe } from 'lucide-react';
 
 export function WelcomeScreen({ onJoin }) {
     const [nickname, setNickname] = useState(localStorage.getItem('nickname') || '');
-    const [room, setRoom] = useState('');
+    const [room, setRoom] = useState(generateRoomCode());
+
+    function generateRoomCode() {
+        return Math.random().toString(36).substring(2, 6).toUpperCase();
+    }
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -55,14 +59,24 @@ export function WelcomeScreen({ onJoin }) {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1 ml-1">Room Code</label>
-                            <input
-                                type="text"
-                                value={room}
-                                onChange={(e) => setRoom(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl glass-input placeholder-gray-500 focus:ring-2 focus:ring-purple-500/50"
-                                placeholder="e.g. ROOM123"
-                                required
-                            />
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={room}
+                                    onChange={(e) => setRoom(e.target.value.toUpperCase())}
+                                    className="w-full px-4 py-3 rounded-xl glass-input placeholder-gray-500 focus:ring-2 focus:ring-purple-500/50 uppercase tracking-widest font-mono"
+                                    placeholder="e.g. ROOM123"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setRoom(generateRoomCode())}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors"
+                                    title="Generate Random Code"
+                                >
+                                    <Zap className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
