@@ -108,8 +108,20 @@ export function RoomScreen({ onLeave }) {
             }
         );
         setWebRTC(rtc);
-        return () => rtc.cleanupAll();
-    }, []);
+
+        // Listen for Relay Data (Fallback)
+        socket.on('relay-data', ({ source, data, metadata }) => {
+            console.log(`Received relay data from ${source}`);
+            if (handleIncomingDataRef.current) {
+                handleIncomingDataRef.current(source, data);
+            }
+        });
+
+        return () => {
+            rtc.cleanupAll();
+            socket.off('relay-data');
+        };
+    }, [],
 
     const handleDrag = useCallback((e) => {
         e.preventDefault();
@@ -149,6 +161,22 @@ export function RoomScreen({ onLeave }) {
 
             // Start sending
             webrtc.connectToPeer(targetPeerId).then(() => {
+                const sendViaRelay = (data) => {
+                    socket.emit('relay-data', {
+                        target: targetPeerId,
+                        data,
+                        metadata: null // Optional, could be used for progress tracking
+                    });
+                    return true;
+                };
+
+                const sendData = (data) => {
+                    if (webrtc.sendData(targetPeerId, data)) return true;
+                    // Fallback to Relay
+                    console.warn("WebRTC failed, using Relay");
+                    return sendViaRelay(data);
+                };
+
                 // 1. Send Metadata
                 const metadata = {
                     type: 'metadata',
@@ -157,14 +185,13 @@ export function RoomScreen({ onLeave }) {
                     fileType: file.type,
                     size: file.size
                 };
-                webrtc.sendData(targetPeerId, JSON.stringify(metadata));
+                sendData(JSON.stringify(metadata));
 
                 // 2. Send Chunks
                 let sentBytes = 0;
                 chunkFile(file, (chunk, offset) => {
                     if (chunk) {
-                        const success = webrtc.sendData(targetPeerId, chunk);
-                        if (success) {
+                        if (sendData(chunk)) {
                             sentBytes += chunk.byteLength;
                             const progress = sentBytes / file.size;
                             updateTransfer(transferId, { progress });
