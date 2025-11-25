@@ -126,7 +126,7 @@ io.on('connection', (socket) => {
 });
 
 // Catch-all for React Routing
-app.get('*', (req, res) => {
+app.get(/.*/, (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'), (err) => {
         if (err) {
             console.error('Error sending index.html:', err);
