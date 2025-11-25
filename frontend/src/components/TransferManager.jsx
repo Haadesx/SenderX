@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../store';
-import { File, ArrowUp, ArrowDown, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { File, ArrowUp, ArrowDown, CheckCircle, XCircle, Loader, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function TransferManager() {
     const transfers = useStore((state) => state.transfers);
@@ -8,52 +9,75 @@ export function TransferManager() {
     if (transfers.length === 0) return null;
 
     return (
-        <div className="fixed bottom-0 right-0 w-full md:w-96 bg-white shadow-2xl border-t border-gray-200 max-h-[50vh] overflow-y-auto z-50">
-            <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center sticky top-0">
-                <h3 className="font-semibold text-gray-900">Transfers</h3>
-                <span className="text-xs font-medium bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
-                    {transfers.length}
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-panel rounded-3xl overflow-hidden"
+        >
+            <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                    <ArrowUp className="w-4 h-4 text-blue-400" />
+                    Transfers
+                </h3>
+                <span className="text-xs font-medium bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full border border-blue-500/30">
+                    {transfers.length} Active
                 </span>
             </div>
-            <div className="divide-y divide-gray-100">
-                {transfers.map((transfer) => (
-                    <div key={transfer.id} className="p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center overflow-hidden">
-                                <div className={`p-2 rounded-lg mr-3 ${transfer.type === 'incoming' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
-                                    }`}>
-                                    {transfer.type === 'incoming' ? <ArrowDown className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
-                                </div>
-                                <div className="truncate">
-                                    <p className="text-sm font-medium text-gray-900 truncate" title={transfer.fileName}>
-                                        {transfer.fileName}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                        {formatBytes(transfer.size)} • {transfer.status}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="ml-2 flex-shrink-0">
-                                {transfer.status === 'completed' && <CheckCircle className="w-5 h-5 text-green-500" />}
-                                {transfer.status === 'error' && <XCircle className="w-5 h-5 text-red-500" />}
-                                {(transfer.status === 'active' || transfer.status === 'pending') && (
-                                    <Loader className="w-5 h-5 text-blue-500 animate-spin" />
-                                )}
-                            </div>
-                        </div>
 
-                        {transfer.status === 'active' && (
-                            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                                <div
-                                    className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-                                    style={{ width: `${(transfer.progress * 100).toFixed(1)}%` }}
+            <div className="max-h-[400px] overflow-y-auto p-2 space-y-2 custom-scrollbar">
+                <AnimatePresence mode="popLayout">
+                    {transfers.map((transfer) => (
+                        <motion.div
+                            key={transfer.id}
+                            layout
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 group relative overflow-hidden"
+                        >
+                            {/* Progress Background */}
+                            {transfer.status === 'active' && (
+                                <motion.div
+                                    className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${transfer.progress * 100}%` }}
+                                    transition={{ ease: "linear" }}
                                 />
+                            )}
+
+                            <div className="flex items-center justify-between relative z-10">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    <div className={`p-2 rounded-lg ${transfer.type === 'incoming'
+                                            ? 'bg-green-500/20 text-green-400'
+                                            : 'bg-blue-500/20 text-blue-400'
+                                        }`}>
+                                        {transfer.type === 'incoming' ? <ArrowDown className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium text-white truncate" title={transfer.fileName}>
+                                            {transfer.fileName}
+                                        </p>
+                                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                                            <span>{formatBytes(transfer.size)}</span>
+                                            <span>•</span>
+                                            <span className="capitalize">{transfer.status}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="ml-2">
+                                    {transfer.status === 'completed' && <CheckCircle className="w-5 h-5 text-green-400" />}
+                                    {transfer.status === 'error' && <XCircle className="w-5 h-5 text-red-400" />}
+                                    {(transfer.status === 'active' || transfer.status === 'pending') && (
+                                        <Loader className="w-5 h-5 text-blue-400 animate-spin" />
+                                    )}
+                                </div>
                             </div>
-                        )}
-                    </div>
-                ))}
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
             </div>
-        </div>
+        </motion.div>
     );
 }
 

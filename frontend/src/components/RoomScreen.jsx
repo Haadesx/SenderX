@@ -2,10 +2,11 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useStore } from '../store';
 import { PeerList } from './PeerList';
 import { TransferManager } from './TransferManager';
-import { LogOut, Copy, Upload } from 'lucide-react';
+import { LogOut, Copy, Upload, Share2, Users } from 'lucide-react';
 import { chunkFile, FileReassembler } from '../lib/fileTransfer';
 import { socket } from '../lib/socket';
 import { WebRTCManager } from '../lib/webrtc';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function RoomScreen({ onLeave }) {
     const { nickname, room, addTransfer, updateTransfer, transfers } = useStore();
@@ -64,33 +65,8 @@ export function RoomScreen({ onLeave }) {
             }
         } else {
             // It's a chunk (ArrayBuffer)
-            // Find the active transfer for this peer
-            // In a real app, we should map peerId -> activeTransferId more explicitly or use a protocol header
-            // For now, we look for an active incoming transfer from this peer
-
-            // We need to access the latest transfers state, but we are in a ref callback.
-            // We can rely on incomingTransfers map which we manage ourselves.
-            // But we need to know which transfer belongs to this peer.
-            // We can store peerId in the reassembler or iterate.
-
             for (const [id, reassembler] of incomingTransfers.current.entries()) {
-                // We assume one active transfer per peer for simplicity or just try to add to all (bad)
-                // Let's check the store to see which transfer matches this peer
-                // Since we can't easily access store state here without subscription, 
-                // let's assume the metadata came from the same peer and we mapped it.
-                // A better way: Store peerId in incomingTransfers map values.
-
-                // Optimization: Just try to add to the first active one for now, 
-                // or better, pass peerId to reassembler if we needed to validate.
-
-                // Let's find the transfer in the store that matches this peer and is active
-                // We can't access store state easily here. 
-                // Workaround: We'll just iterate our local map and if we had multiple, this would be buggy.
-                // But for 1-on-1 or 1-file-at-a-time per peer, this works.
                 reassembler.addChunk(data);
-                // Break after first successful add? 
-                // Reassembler doesn't return success/fail on addChunk usually.
-                // Let's just break to avoid adding to multiple if we had them.
                 break;
             }
         }
@@ -207,69 +183,120 @@ export function RoomScreen({ onLeave }) {
     const copyRoomLink = () => {
         const url = `${window.location.origin}?room=${room}`;
         navigator.clipboard.writeText(url);
-        alert("Room link copied!");
+        // Could add a toast here
     };
 
     return (
         <div
-            className="min-h-screen bg-gray-50 flex flex-col"
+            className="min-h-screen flex flex-col relative"
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
         >
             {/* Header */}
-            <header className="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10">
+            <motion.header
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="glass-panel m-4 rounded-2xl px-6 py-4 flex justify-between items-center z-10"
+            >
                 <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-bold text-gray-900">LocalSend Web</h1>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
-                        <span>Room: {room}</span>
-                        <button onClick={copyRoomLink} className="hover:text-blue-900">
-                            <Copy className="w-4 h-4" />
-                        </button>
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-lg">
+                        <Share2 className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold text-white">SenderX</h1>
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            Connected to Room {room}
+                        </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="text-sm text-gray-600">
-                        Logged in as <span className="font-semibold text-gray-900">{nickname}</span>
+
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={copyRoomLink}
+                        className="glass-button p-2 rounded-xl text-gray-300 hover:text-white"
+                        title="Copy Link"
+                    >
+                        <Copy className="w-5 h-5" />
+                    </button>
+                    <div className="h-8 w-[1px] bg-white/10" />
+                    <div className="flex items-center gap-3 px-3">
+                        <div className="text-right hidden sm:block">
+                            <div className="text-sm font-medium text-white">{nickname}</div>
+                            <div className="text-xs text-gray-400">Online</div>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                            {nickname[0].toUpperCase()}
+                        </div>
                     </div>
                     <button
                         onClick={onLeave}
-                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="glass-button p-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10"
                         title="Leave Room"
                     >
                         <LogOut className="w-5 h-5" />
                     </button>
                 </div>
-            </header>
+            </motion.header>
 
             {/* Main Content */}
-            <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
-                <div className="mb-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Nearby Devices</h2>
-                    <PeerList onSelectPeer={(peerId) => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.multiple = true;
-                        input.onchange = (e) => handleFileSelect(e, peerId);
-                        input.click();
-                    }} />
+            <main className="flex-1 p-4 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Peer List Section */}
+                <div className="lg:col-span-2 space-y-6">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="glass-panel rounded-3xl p-6 min-h-[400px]"
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <Users className="w-5 h-5 text-purple-400" />
+                                Nearby Devices
+                            </h2>
+                            <span className="text-xs bg-white/10 px-3 py-1 rounded-full text-gray-300">
+                                Tap to send
+                            </span>
+                        </div>
+
+                        <PeerList onSelectPeer={(peerId) => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.multiple = true;
+                            input.onchange = (e) => handleFileSelect(e, peerId);
+                            input.click();
+                        }} />
+                    </motion.div>
+                </div>
+
+                {/* Transfer Manager Section */}
+                <div className="lg:col-span-1">
+                    <TransferManager />
                 </div>
             </main>
 
-            {/* Transfer Manager */}
-            <TransferManager />
-
             {/* Drag Overlay */}
-            {dragActive && (
-                <div className="absolute inset-0 bg-blue-500/10 backdrop-blur-sm border-4 border-blue-500 border-dashed m-4 rounded-2xl flex items-center justify-center z-50 pointer-events-none">
-                    <div className="text-center bg-white p-8 rounded-xl shadow-xl">
-                        <Upload className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-gray-900">Drop files to send</h3>
-                        <p className="text-gray-500">Release to select a recipient</p>
-                    </div>
-                </div>
-            )}
+            <AnimatePresence>
+                {dragActive && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-blue-600/20 backdrop-blur-md border-4 border-blue-500/50 border-dashed m-4 rounded-3xl flex items-center justify-center z-50 pointer-events-none"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.5 }}
+                            animate={{ scale: 1 }}
+                            className="text-center bg-black/50 p-8 rounded-3xl backdrop-blur-xl border border-white/10"
+                        >
+                            <Upload className="w-20 h-20 text-blue-400 mx-auto mb-4 animate-bounce" />
+                            <h3 className="text-2xl font-bold text-white">Drop files to send</h3>
+                            <p className="text-gray-400">Release to select a recipient</p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

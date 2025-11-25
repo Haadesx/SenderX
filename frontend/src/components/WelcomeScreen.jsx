@@ -1,79 +1,98 @@
 import React, { useState } from 'react';
-import { useStore } from '../store';
-import { ArrowRight, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowRight, Zap, Shield, Globe } from 'lucide-react';
 
 export function WelcomeScreen({ onJoin }) {
-    const { nickname, room, setNickname, setRoom } = useStore();
-    const [localNick, setLocalNick] = useState(nickname);
-    const [localRoom, setLocalRoom] = useState(room || generateRoomCode());
+    const [nickname, setNickname] = useState(localStorage.getItem('nickname') || '');
+    const [room, setRoom] = useState('');
 
-    function generateRoomCode() {
-        return Math.random().toString(36).substring(2, 6).toUpperCase();
-    }
-
-    const handleJoin = (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
-        if (localNick && localRoom) {
-            setNickname(localNick);
-            setRoom(localRoom);
-            onJoin(localNick, localRoom);
+        if (nickname && room) {
+            localStorage.setItem('nickname', nickname);
+            onJoin(nickname, room);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+        <div className="min-h-screen flex items-center justify-center p-4">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="glass-panel p-8 rounded-3xl w-full max-w-md relative overflow-hidden"
+            >
+                {/* Decorative Glow */}
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-                        <Zap className="w-8 h-8 text-blue-600" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-gray-900">LocalSend Web</h1>
-                    <p className="text-gray-500 mt-2">Secure, browser-based file sharing</p>
+                    <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="inline-block p-4 rounded-full bg-white/5 mb-4 border border-white/10"
+                    >
+                        <Zap className="w-10 h-10 text-yellow-400 fill-yellow-400" />
+                    </motion.div>
+                    <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 mb-2">
+                        SenderX
+                    </h1>
+                    <p className="text-gray-400">Universal File Transfer</p>
                 </div>
 
-                <form onSubmit={handleJoin} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nickname</label>
-                        <input
-                            type="text"
-                            required
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                            placeholder="e.g. Varesh-Laptop"
-                            value={localNick}
-                            onChange={(e) => setLocalNick(e.target.value)}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Room Code</label>
-                        <div className="flex gap-2">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1 ml-1">Display Name</label>
                             <input
                                 type="text"
+                                value={nickname}
+                                onChange={(e) => setNickname(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl glass-input placeholder-gray-500 focus:ring-2 focus:ring-purple-500/50"
+                                placeholder="Enter your name"
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all uppercase"
-                                placeholder="e.g. A7FQ"
-                                value={localRoom}
-                                onChange={(e) => setLocalRoom(e.target.value.toUpperCase())}
                             />
-                            <button
-                                type="button"
-                                onClick={() => setLocalRoom(generateRoomCode())}
-                                className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            >
-                                Random
-                            </button>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1 ml-1">Room Code</label>
+                            <input
+                                type="text"
+                                value={room}
+                                onChange={(e) => setRoom(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl glass-input placeholder-gray-500 focus:ring-2 focus:ring-purple-500/50"
+                                placeholder="e.g. ROOM123"
+                                required
+                            />
                         </div>
                     </div>
 
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         type="submit"
-                        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                        className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all flex items-center justify-center gap-2"
                     >
-                        Start Sharing
-                        <ArrowRight className="w-4 h-4" />
-                    </button>
+                        Join Room <ArrowRight className="w-5 h-5" />
+                    </motion.button>
                 </form>
+
+                <div className="mt-8 grid grid-cols-3 gap-4 text-center">
+                    <Feature icon={<Shield className="w-5 h-5" />} text="Secure" />
+                    <Feature icon={<Zap className="w-5 h-5" />} text="Fast" />
+                    <Feature icon={<Globe className="w-5 h-5" />} text="P2P" />
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
+function Feature({ icon, text }) {
+    return (
+        <div className="flex flex-col items-center gap-2 text-gray-400">
+            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+                {icon}
             </div>
+            <span className="text-xs font-medium">{text}</span>
         </div>
     );
 }

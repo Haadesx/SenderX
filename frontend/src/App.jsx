@@ -56,11 +56,16 @@ function App() {
     }
   }, []);
 
-  if (inRoom) {
-    return <RoomScreen onLeave={handleLeave} />;
-  }
-
-  return <WelcomeScreen onJoin={handleJoin} />;
+  return (
+    <>
+      <div className="cosmic-bg">
+        <div className="orb orb-1"></div>
+        <div className="orb orb-2"></div>
+        <div className="orb orb-3"></div>
+      </div>
+      {inRoom ? <RoomScreen onLeave={handleLeave} /> : <WelcomeScreen onJoin={handleJoin} />}
+    </>
+  );
 }
 
 export default App;
